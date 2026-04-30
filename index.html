@@ -379,6 +379,13 @@ function render() {
   }
   h+='</div></div>';
 
+  // 导出/导入
+  h+=`<div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn btn-outline" id="btnExport" style="flex:1;text-align:center">📤 导出数据</button>
+    <button class="btn btn-outline" id="btnImport" style="flex:1;text-align:center">📥 导入数据</button>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+  </div>`;
+
   a.innerHTML=h; bind(data, visible);
 }
 
@@ -468,6 +475,34 @@ function bind(data, items) {
   document.querySelectorAll('.undo').forEach(b=>b.onclick=()=>{
     const T=td(); if (data.r[T]&&data.r[T][b.dataset.k]) { delete data.r[T][b.dataset.k]; if (!Object.keys(data.r[T]).length) delete data.r[T]; }
     set(data); toast('↩ 已撤销'); render();
+  });
+
+  // 导出数据
+  document.getElementById('btnExport') && (document.getElementById('btnExport').onclick=()=>{
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'param-data-' + td() + '.json'; a.click();
+    toast('📤 数据已导出');
+  });
+
+  // 导入数据
+  const fileInput = document.getElementById('importFile');
+  document.getElementById('btnImport') && (document.getElementById('btnImport').onclick=()=>fileInput.click());
+  fileInput && (fileInput.onchange=()=>{
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!imported.r) throw 'invalid';
+        set(imported);
+        toast('📥 数据已导入，刷新中…');
+        location.reload();
+      } catch { toast('❌ 文件格式不对'); }
+    };
+    reader.readAsText(file);
   });
 }
 
