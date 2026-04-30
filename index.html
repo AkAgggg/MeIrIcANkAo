@@ -244,12 +244,9 @@ function render() {
   const data = get(), T = td(), c = CATS.find(x=>x.id===cat);
   const items = c.s.map(s => ({ n:s, k:mkKey(cat,s), st:getState(data,cat,s) }));
   
-  // 分离：有历史/有状态的显示，全新无历史的自动收起
-  const allDates = Object.keys(data.r);
-  const hasHistory = k => allDates.some(d => data.r[d][k]);
-  const allNew = items.every(it => it.st.s === S.NEW && !hasHistory(it.k));
-  const visible = allNew ? items : items.filter(it => it.st.s !== S.NEW || hasHistory(it.k) || shown.has(it.k));
-  const hidden = items.filter(it => !visible.includes(it));
+  // 显示逻辑：只有 SKIP(无参数) 收起，其余全部显示
+  const visible = items.filter(it => it.st.s !== S.SKIP || shown.has(it.k));
+  const hidden = items.filter(it => it.st.s === S.SKIP && !shown.has(it.k));
   const a = document.getElementById('app');
   let h='';
 
