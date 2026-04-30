@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>每日参数记录器</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f0f2f5;
+  --card: #fff;
+  --text: #1a1a2e;
+  --t2: #666;
+  --t3: #999;
+  --border: #e0e0e0;
+  --pos: #e74c3c; --pos-bg: #fff0f0;
+  --neg: #2980b9; --neg-bg: #edf6fc;
+  --profit: #27ae60;
+  --loss: #e67e22;
+  --confirm: #2ecc71;
+  --warn: #f39c12;
+  --r: 12px;
+  --sh: 0 2px 10px rgba(0,0,0,0.06);
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+.container { max-width: 500px; margin: 0 auto; padding: 10px 12px; }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1a1a2e, #162447);
+  color: #fff; padding: 16px 18px; border-radius: var(--r);
+  margin-bottom: 12px; position: relative; overflow: hidden;
+}
+.header::after {
+  content: ''; position: absolute; top: -30px; right: -30px;
+  width: 100px; height: 100px; background: rgba(255,255,255,0.03); border-radius: 50%;
+}
+.header h1 { font-size: 19px; margin-bottom: 2px; position: relative; z-index: 1; }
+.header .date { font-size: 12px; opacity: 0.85; position: relative; z-index: 1; }
+.btn-day {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; padding: 4px 10px; border-radius: 8px; font-size: 11px; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-day:hover, .btn-day:active { background: rgba(255,255,255,0.22); }
+#datePick {
+  background: rgba(255,255,255,0.9); color: #1a1a2e; text-align: center;
+  font-weight: 600;
+}
+
+/* Tabs */
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tab {
+  flex: 1; padding: 10px 2px; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--card); text-align: center; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: all 0.18s; color: var(--t2);
+}
+.tab:active { transform: scale(0.94); }
+.tab.on {
+  border-color: var(--pos); background: #fff5f5; color: var(--pos);
+  box-shadow: 0 0 0 3px rgba(231,76,60,0.1);
+}
+
+/* Cards */
+.cards { display: flex; flex-direction: column; gap: 10px; }
+
+.sect-head {
+  text-align: center; font-size: 11px; font-weight: 700; color: var(--t3);
+  letter-spacing: 2px; padding: 4px 0; border-bottom: 1px solid #eee;
+  margin-bottom: -4px;
+}
+
+.card {
+  background: var(--card); border-radius: var(--r); padding: 14px 16px;
+  box-shadow: var(--sh); border-left: 4px solid transparent;
+  transition: all 0.2s; position: relative;
+}
+.card.l-confirmed { border-left-color: var(--confirm); }
+.card.l-suggested { border-left-color: var(--neg); }
+.card.l-pending { border-left-color: var(--warn); }
+.card.l-empty { border-left-color: #ccc; }
+
+.card.compact { padding: 10px 14px; }
+.card.compact .top { margin-bottom: 4px; }
+.card.compact .top .name { font-size: 14px; }
+.card.compact .yest { margin-bottom: 6px; font-size: 11px; padding: 4px 8px; }
+.card.compact .param-tag { font-size: 13px; padding: 4px 10px; }
+.card.compact .btn { padding: 6px 10px; font-size: 11px; }
+
+.card .top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.card .top .name { font-size: 16px; font-weight: 700; }
+.card .top .tag {
+  font-size: 10px; padding: 2px 8px; border-radius: 20px; color: #fff; font-weight: 600;
+}
+.tag-done { background: var(--confirm); }
+.tag-wait { background: var(--neg); }
+.tag-need { background: var(--warn); }
+.tag-new  { background: #aaa; }
+
+.card .yest {
+  font-size: 12px; color: var(--t2); padding: 6px 10px;
+  background: #f8f9fb; border-radius: 8px; margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.card .bot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+.param-tag {
+  font-size: 15px; font-weight: 700; padding: 6px 14px; border-radius: 8px;
+  white-space: nowrap;
+}
+.param-tag.pos { background: var(--pos-bg); color: var(--pos); border: 1px solid #f5c6cb; }
+.param-tag.neg { background: var(--neg-bg); color: var(--neg); border: 1px solid #b8daff; }
+.param-tag.unk { background: #f0f0f0; color: var(--t3); }
+
+.btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.btn {
+  padding: 8px 14px; border-radius: 8px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s;
+  white-space: nowrap; font-family: inherit;
+}
+.btn:active { transform: scale(0.93); }
+.btn-profit { background: var(--profit); color: #fff; }
+.btn-loss   { background: var(--loss); color: #fff; }
+.btn-confirm { background: var(--neg); color: #fff; }
+.btn-pos { background: var(--pos); color: #fff; }
+.btn-neg { background: #1a5276; color: #fff; }
+.btn-outline { background: #fff; border: 2px solid var(--border); color: var(--t2); }
+.btn-ghost { background: transparent; color: var(--t3); font-size: 11px; padding: 4px 8px; border: 1px solid #eee; }
+.btn-ghost:hover { color: var(--neg); border-color: var(--neg); }
+
+.label-sm { font-size: 12px; color: var(--t2); }
+.highlight { font-weight: 700; }
+
+/* Batch bar */
+.batch-bar {
+  margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--t2);
+}
+.batch-bar .btn-all {
+  padding: 5px 12px; font-size: 12px;
+}
+
+/* History */
+.hist-toggle {
+  margin-top: 16px; padding: 12px; background: var(--card);
+  border-radius: var(--r); text-align: center; cursor: pointer;
+  font-weight: 600; font-size: 14px; color: var(--neg); box-shadow: var(--sh);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.hist-panel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+.hist-panel.open { max-height: 3000px; }
+.hist-wrap { margin-top: 8px; background: var(--card); border-radius: var(--r); padding: 12px; box-shadow: var(--sh); }
+.hist-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.hist-table th, .hist-table td {
+  padding: 7px 5px; text-align: center; border-bottom: 1px solid #f0f0f0;
+}
+.hist-table th { background: #f8f9fb; font-size: 11px; color: var(--t2); }
+
+/* Toast */
+.toast {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 10px 22px; border-radius: 20px;
+  font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.25s;
+  pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.toast.on { opacity: 1; }
+
+.empty-state { text-align: center; padding: 36px 10px; color: var(--t3); }
+.empty-state .big-icon { font-size: 40px; margin-bottom: 8px; }
+
+.add-toggle {
+  text-align: center; padding: 10px; font-size: 13px; color: var(--t3);
+  cursor: pointer; border: 2px dashed #ddd; border-radius: var(--r);
+  margin-top: 8px; transition: all 0.15s;
+}
+.add-toggle:hover, .add-toggle:active { border-color: var(--neg); color: var(--neg); }
+.add-panel { max-height: 0; overflow: hidden; transition: max-height 0.3s; }
+.add-panel.open { max-height: 500px; }
+.add-wrap { padding: 8px 0; }
+.add-row {
+  padding: 10px 14px; background: var(--card); border-radius: 8px;
+  margin-bottom: 6px; cursor: pointer; font-weight: 600; font-size: 14px;
+  box-shadow: var(--sh); transition: background 0.15s; text-align: center;
+}
+.add-row:hover, .add-row:active { background: #f0f7ff; }
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+// ===== 数据 =====
+const LS = 'pr2';
+const get = () => { try { return JSON.parse(localStorage.getItem(LS)) || {r:{}}; } catch { return {r:{}}; } };
+const set = d => localStorage.setItem(LS, JSON.stringify(d));
+const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const realToday = () => fmtDate(new Date());
+const offDay = (dateStr, n) => { let d=new Date(dateStr); d.setDate(d.getDate()+n); return fmtDate(d); };
+let sim = null; // 模拟日期，null=用真实日期
+const td = () => sim || realToday();
+
+function dRec(data, date, key) { return (data.r[date] && data.r[date][key]) || null; }
+function sRec(data, date, key, rec) { if (!data.r[date]) data.r[date] = {}; data.r[date][key] = rec; }
+
+// 推算: 盈→不变, 亏→反转
+function calc(yP, yR) { return yR === '盈' ? yP : yP === '正' ? '负' : '正'; }
+
+// ===== 分类 =====
+const CATS = [
+  { id:'足', n:'足球',   e:'⚽', s:['让·午','O/U·午','两·午','让·晚','O/U·晚','两·晚'] },
+  { id:'篮', n:'篮球',   e:'🏀', s:['让','O/U'] },
+  { id:'冰', n:'冰球',   e:'🏒', s:['让','O/U'] },
+  { id:'棒', n:'棒球',   e:'⚾', s:['让','O/U','一血'] },
+  { id:'橄', n:'橄榄球', e:'🏈', s:['让','O/U'] },
+];
+const mkKey = (c,s) => `${c}-${s}`;
+const S = { DONE:'done', WAIT:'wait', NEED:'need', NEW:'new', SKIP:'skip' };
+
+function getState(data, catId, sub) {
+  const T = td(), key = mkKey(catId, sub), tRec = dRec(data, T, key);
+  if (tRec && tRec.p) return { s:S.DONE, tp:tRec.p };
+  if (tRec && tRec.skip) return { s:S.SKIP };
+
+  // 找最近一条记录
+  const dates = Object.keys(data.r).sort().reverse();
+  let lr=null, ld=null;
+  for (const d of dates) { if (d >= T) continue; const r = data.r[d][key]; if (r) { lr=r; ld=d; break; } }
+  if (lr && lr.p && lr.r) return { s:S.WAIT, sug:calc(lr.p, lr.r), yp:lr.p, yr:lr.r, yd:ld };
+  if (lr && lr.p && !lr.r) return { s:S.NEED, yp:lr.p, yd:ld };
+  return { s:S.NEW };
+}
+
+// ===== UI =====
+let cat = '足', hist = false;
+let shown = new Set(); // user-activated hidden items
+
+function render() {
+  const data = get(), T = td(), c = CATS.find(x=>x.id===cat);
+  const items = c.s.map(s => ({ n:s, k:mkKey(cat,s), st:getState(data,cat,s) }));
+  
+  // 分离：有历史/有状态的显示，全新无历史的自动收起
+  const allDates = Object.keys(data.r);
+  const hasHistory = k => allDates.some(d => data.r[d][k]);
+  const allNew = items.every(it => it.st.s === S.NEW && !hasHistory(it.k));
+  const visible = allNew ? items : items.filter(it => it.st.s !== S.NEW || hasHistory(it.k) || shown.has(it.k));
+  const hidden = items.filter(it => !visible.includes(it));
+  const a = document.getElementById('app');
+  let h='';
+
+  // Header
+  const isSim = !!sim;
+  const realT = realToday();
+  h+=`<div class="header">
+    <h1>📊 每日参数记录器</h1>
+    <div class="date" style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:4px">
+      <span>📍 ${T}</span>
+      ${isSim ? `<span style="background:#f39c12;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">模拟模式</span>
+        <button class="btn-reset" id="btnReset" style="background:transparent;border:1px solid rgba(255,255,255,0.5);color:#fff;padding:2px 10px;border-radius:10px;font-size:11px;cursor:pointer">返回今天 ${realT}</button>`
+        : `<span style="font-size:11px;opacity:0.6">自动同步系统时间</span>`}
+    </div>
+    <div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
+      <button class="btn-day" id="btnPrev">◀ 前一天</button>
+      <input type="date" id="datePick" value="${T}" style="padding:4px 8px;border-radius:6px;border:none;font-size:12px;font-family:inherit">
+      <button class="btn-day" id="btnNext">后一天 ▶</button>
+    </div>
+  </div>`;
+
+  // Tabs
+  h+='<div class="tabs">';
+  for (const x of CATS) h+=`<div class="tab${x.id===cat?' on':''}" data-cat="${x.id}" title="${x.n}">${x.e}</div>`;
+  h+='</div>';
+
+  // Batch bar: count WAIT items
+  const waitCount = visible.filter(i=>i.st.s===S.WAIT).length;
+  if (waitCount > 0) {
+    h+=`<div class="batch-bar">💡 有 ${waitCount} 项待确认 <button class="btn btn-confirm btn-all" id="btnAll">一键全部确认</button></div>`;
+  }
+
+  // Cards
+  h+='<div class="cards">';
+  let lastBase = '';
+  for (const it of visible) {
+    // Football: group by time slot (午间 / 晚间)
+    if (cat === '足') {
+      const slot = it.n.split('·')[1];
+      if (slot !== lastBase) {
+        h+=`<div class="sect-head">${slot==='午'?'☀️ 午间':'🌙 晚间'}</div>`;
+        lastBase = slot;
+      }
+    }
+    const st = it.st;
+    let cls='', tag='', yest='', param='', btn='';
+    switch(st.s) {
+      case S.DONE:
+        cls='l-confirmed'; tag='<span class="tag tag-done">已确认</span>';
+        { // 找到最近一条有结果的记录，显示并可修改
+          const ds=Object.keys(data.r).sort().reverse(); let pr=null,pd=null;
+          for (const d of ds) { if (d>=T) continue; const r=data.r[d][it.k]; if (r&&r.p&&r.r) { pr=r; pd=d; break; } }
+          yest=pr?`<div class="yest">📅 ${pd}：<span class="highlight" style="color:${pr.p==='正'?'var(--pos)':'var(--neg)'}">用${pr.p}数</span> →
+            <span style="color:${pr.r==='盈'?'var(--profit)':'var(--loss)'};font-weight:700">${pr.r==='盈'?'盈利':'亏损'}</span>
+            <button class="btn btn-ghost edit-r" data-k="${it.k}" data-d="${pd}" style="margin-left:6px;padding:2px 8px;font-size:10px">改</button></div>`:'';
+        }
+        param=`<span class="param-tag ${st.tp==='正'?'pos':'neg'}">今日：用${st.tp}数</span>`;
+        btn=`<button class="btn btn-ghost undo" data-k="${it.k}">↩ 撤销</button>`;
+        break;
+      case S.WAIT:
+        cls='l-suggested'; tag='<span class="tag tag-wait">待确认</span>';
+        yest=`<div class="yest">📅 ${st.yd}：<span class="highlight" style="color:${st.yp==='正'?'var(--pos)':'var(--neg)'}">用${st.yp}数</span> →
+          <span style="color:${st.yr==='盈'?'var(--profit)':'var(--loss)'};font-weight:700">${st.yr==='盈'?'盈利':'亏损'}</span>
+          → 今日推算：<span class="highlight" style="color:${st.sug==='正'?'var(--pos)':'var(--neg)'}">用${st.sug}数</span></div>`;
+        param=`<span class="param-tag ${st.sug==='正'?'pos':'neg'}">建议：用${st.sug}数</span>`;
+        btn=`<button class="btn btn-confirm do-confirm" data-k="${it.k}" data-p="${st.sug}">✅ 确认</button>
+             <button class="btn btn-outline manual-switch" data-k="${it.k}" data-p="${st.sug==='正'?'负':'正'}">改用${st.sug==='正'?'负':'正'}数</button>`;
+        break;
+      case S.NEED:
+        cls='l-pending'; tag='<span class="tag tag-need">需记录结果</span>';
+        yest=`<div class="yest">📅 ${st.yd}：使用 <span class="highlight" style="color:${st.yp==='正'?'var(--pos)':'var(--neg)'}">用${st.yp}数</span>，<span style="color:var(--warn)">结果待记录</span></div>`;
+        param='<span class="param-tag unk">等待中…</span>';
+        btn=`<span class="label-sm">昨日结果：</span>
+             <button class="btn btn-profit rec-r" data-k="${it.k}" data-r="盈">💰 盈利</button>
+             <button class="btn btn-loss rec-r" data-k="${it.k}" data-r="亏">📉 亏损</button>
+             <button class="btn btn-outline no-bet" data-k="${it.k}" style="font-size:11px;padding:5px 8px">无参数</button>`;
+        break;
+      case S.SKIP:
+        cls='l-empty'; tag='<span class="tag" style="background:#aaa">已跳过</span>';
+        yest='<div class="yest" style="color:var(--t3)">今日未参与，无需设置</div>';
+        param='<span class="param-tag unk">未参与</span>';
+        btn=`<button class="btn btn-ghost undo" data-k="${it.k}">↩ 撤销</button>`;
+        break;
+      case S.NEW:
+        cls='l-empty'; tag='<span class="tag tag-new">首次设置</span>';
+        yest='<div class="yest" style="color:var(--t3)">暂无历史记录，请手动设置今日用正数或用负数</div>';
+        param='<span class="param-tag unk">未设置</span>';
+        btn=`<span class="label-sm">手动设置：</span>
+             <button class="btn btn-pos manual-first" data-k="${it.k}" data-p="正">🔴 用正数</button>
+             <button class="btn btn-neg manual-first" data-k="${it.k}" data-p="负">🔵 用负数</button>
+             <button class="btn btn-ghost skip-today" data-k="${it.k}">⏭ 未参与</button>`;
+        break;
+    }
+    h+=`<div class="card ${cls}${cat==='足'?' compact':''}">
+      <div class="top"><span class="name">${it.n}</span>${tag}</div>
+      ${yest}
+      <div class="bot">${param}<div class="btns">${btn}</div></div>
+    </div>`;
+  }
+  h+='</div>';
+
+  // Hidden items: expandable "＋ 新增" section
+  if (hidden.length > 0 && !allNew) {
+    h+=`<div class="add-toggle" id="addToggle">＋ 新增项目 (${hidden.length})</div>`;
+    h+=`<div class="add-panel" id="addPanel"><div class="add-wrap">`;
+    for (const it of hidden) {
+      h+=`<div class="add-row" data-k="${it.k}">${it.n} <span style="font-size:11px;color:var(--t3)">— 点击激活</span></div>`;
+    }
+    h+=`</div></div>`;
+  }
+
+  // History
+  h+=`<div class="hist-toggle" id="histBtn">📋 历史记录 ${hist?'▲':'▼'}</div>`;
+  h+=`<div class="hist-panel${hist?' open':''}"><div class="hist-wrap">`;
+  if (hist) {
+    const rows=[];
+    const dates=Object.keys(data.r).sort().reverse();
+    for (const d of dates) for (const s of c.s) {
+      const rec=dRec(data,d,mkKey(cat,s)); if(rec) rows.push({d,s,p:rec.skip?'未参与':rec.p,r:rec.r});
+    }
+    if (rows.length) {
+      h+='<table class="hist-table"><thead><tr><th>日期</th><th>子类</th><th>参数</th><th>结果</th></tr></thead><tbody>';
+      for (const r of rows) {
+        h+=`<tr><td>${r.d}</td><td>${r.s}</td>
+          <td style="color:${r.p==='正'?'var(--pos)':r.p==='负'?'var(--neg)':r.p==='未参与'?'var(--t3)':''};font-weight:${r.p==='未参与'?'400':'700'}">${r.p}</td>
+          <td style="color:${r.r==='盈'?'var(--profit)':r.r==='亏'?'var(--loss)':'var(--t3)'}">${r.r||'—'}</td></tr>`;
+      }
+      h+='</tbody></table>';
+    } else h+='<div class="empty-state"><div class="big-icon">📭</div>暂无历史记录</div>';
+  }
+  h+='</div></div>';
+
+  a.innerHTML=h; bind(data, visible);
+}
+
+function bind(data, items) {
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{cat=t.dataset.cat;hist=false;render();});
+  document.getElementById('histBtn') && (document.getElementById('histBtn').onclick=()=>{hist=!hist;render();});
+
+  // 日期模拟
+  const dp = document.getElementById('datePick');
+  if (dp) {
+    dp.onchange = () => { const v=dp.value; sim=v===realToday()?null:v; hist=false; render(); };
+  }
+  document.getElementById('btnPrev') && (document.getElementById('btnPrev').onclick=()=>{ sim=offDay(td(),-1); render(); });
+  document.getElementById('btnNext') && (document.getElementById('btnNext').onclick=()=>{ sim=offDay(td(),1); render(); });
+  document.getElementById('btnReset') && (document.getElementById('btnReset').onclick=()=>{ sim=null; render(); });
+
+  // 展开/收起新增项目
+  let addOpen = false;
+  document.getElementById('addToggle') && (document.getElementById('addToggle').onclick=()=>{
+    addOpen=!addOpen; document.getElementById('addPanel').classList.toggle('open',addOpen);
+  });
+  // 点击激活隐藏项目 → 视为首次手动设置
+  document.querySelectorAll('.add-row').forEach(r=>r.onclick=()=>{
+    shown.add(r.dataset.k); render();
+  });
+
+  // 记录昨日结果 → 自动确认今日参数
+  document.querySelectorAll('.rec-r').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k, r=b.dataset.r, dates=Object.keys(data.r).sort().reverse(), T=td();
+    for (const d of dates) { if (d>=T) continue; const rec=data.r[d]&&data.r[d][k]; if (rec&&rec.p&&!rec.r) {
+      rec.r=r; const sug=calc(rec.p,r); sRec(data,T,k,{p:sug,r:null}); set(data);
+      toast(`✅ ${d} ${r==='盈'?'盈利':'亏损'} → 今日自动使用${sug}数`); render(); return; } }
+  });
+
+  // 未投注：清除昨日记录，今日重新设置
+  document.querySelectorAll('.no-bet').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k, dates=Object.keys(data.r).sort().reverse(), T=td();
+    for (const d of dates) { if (d>=T) continue; const rec=data.r[d]&&data.r[d][k]; if (rec&&rec.p&&!rec.r) {
+      delete data.r[d][k]; if (!Object.keys(data.r[d]).length) delete data.r[d];
+      set(data); toast('⏭ 已清除昨日参数，今日重新设置'); render(); return; } }
+  });
+
+  // 确认今日参数（建议确认 + 首次手动设置）
+  document.querySelectorAll('.do-confirm,.manual-first').forEach(b=>b.onclick=()=>{
+    const T=td(), k=b.dataset.k; sRec(data,T,k,{p:b.dataset.p,r:null}); set(data); toast(`✅ 已确认：用${b.dataset.p}数`); render();
+  });
+
+  // 手动改用 → 联动修改昨日结果 + 今日参数
+  document.querySelectorAll('.manual-switch').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k, p=b.dataset.p, T=td(), dates=Object.keys(data.r).sort().reverse();
+    for (const d of dates) { if (d>=T) continue; const rec=data.r[d]&&data.r[d][k]; if (rec&&rec.p&&rec.r) {
+      rec.r = rec.r==='盈'?'亏':'盈'; sRec(data,T,k,{p,r:null}); set(data);
+      toast(`🔄 ${d} 结果改为${rec.r} → 今日改用${p}数`); render(); return;
+    } }
+    // fallback：找不到对应记录则只设今日参数
+    sRec(data,T,k,{p,r:null}); set(data); toast(`✅ 今日改用${p}数`); render();
+  });
+
+  // 标记未参与
+  document.querySelectorAll('.skip-today').forEach(b=>b.onclick=()=>{
+    const T=td(); sRec(data,T,b.dataset.k,{p:null,skip:true}); set(data); toast('⏭ 已标记为未参与'); render();
+  });
+
+  // 一键全部确认
+  const ba=document.getElementById('btnAll');
+  if (ba) ba.onclick=()=>{
+    const T=td(); let n=0;
+    for (const it of items) { if (it.st.s===S.WAIT) { sRec(data,T,it.k,{p:it.st.sug,r:null}); n++; } }
+    if (n>0) { set(data); toast(`✅ 已一键确认 ${n} 项`); render(); }
+  };
+
+  // 修改已记录的结果（盈↔亏切换，自动重算今日参数）
+  document.querySelectorAll('.edit-r').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k, d=b.dataset.d, T=td();
+    const rec=data.r[d][k];
+    if (rec && rec.r) {
+      rec.r = rec.r==='盈'?'亏':'盈';
+      const newP = calc(rec.p, rec.r);
+      sRec(data,T,k,{p:newP,r:null});
+      set(data);
+      toast(`🔄 ${d} 结果改为${rec.r} → 今日更新为用${newP}数`);
+      render();
+    }
+  });
+
+  // 撤销
+  document.querySelectorAll('.undo').forEach(b=>b.onclick=()=>{
+    const T=td(); if (data.r[T]&&data.r[T][b.dataset.k]) { delete data.r[T][b.dataset.k]; if (!Object.keys(data.r[T]).length) delete data.r[T]; }
+    set(data); toast('↩ 已撤销'); render();
+  });
+}
+
+function toast(m) { const e=document.getElementById('toast'); e.textContent=m; e.classList.add('on'); setTimeout(()=>e.classList.remove('on'),1800); }
+
+render();
+</script>
+</body>
+</html>
