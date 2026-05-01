@@ -25,7 +25,7 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background: var(--bg); color: var(--text); min-height: 100dvh;
-  -webkit-tap-highlight-color: transparent; user-select: none;
+  -webkit-tap-highlight-color: transparent;
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 .container { max-width: 500px; margin: 0 auto; padding: 10px 12px; }
@@ -120,9 +120,9 @@ body {
 
 .btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .btn {
-  padding: 8px 14px; border-radius: 8px; border: none;
-  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s;
-  white-space: nowrap; font-family: inherit;
+  padding: 10px 16px; border-radius: 8px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.12s;
+  white-space: nowrap; font-family: inherit; min-height: 44px; touch-action: manipulation;
 }
 .btn:active { transform: scale(0.93); }
 .btn-profit { background: var(--profit); color: #fff; }
@@ -131,7 +131,7 @@ body {
 .btn-pos { background: var(--pos); color: #fff; }
 .btn-neg { background: #1a5276; color: #fff; }
 .btn-outline { background: #fff; border: 2px solid var(--border); color: var(--t2); }
-.btn-ghost { background: transparent; color: var(--t3); font-size: 11px; padding: 4px 8px; border: 1px solid #eee; }
+.btn-ghost { background: transparent; color: var(--t3); font-size: 12px; padding: 6px 10px; border: 1px solid #eee; min-height: 36px; touch-action: manipulation; }
 .btn-ghost:hover { color: var(--neg); border-color: var(--neg); }
 
 .label-sm { font-size: 12px; color: var(--t2); }
